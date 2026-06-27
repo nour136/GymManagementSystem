@@ -223,12 +223,6 @@ dotnet run
 
 ---
 
-# 📸 Screenshots
-
-(Add application screenshots here)
-
----
-
 # 🎯 Future Improvements
 
 * Build RESTful Web API version
