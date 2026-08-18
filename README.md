@@ -233,14 +233,14 @@ dotnet run
 
 ---
 
-# 👨‍💻 Author
+#  Author
 
-**Sief Ibrahim Ezzat**
+**Nour Yasser**
 
 .NET Developer
 
 GitHub:
-https://github.com/sief-elmenshawi
+
 
 LinkedIn:
-https://linkedin.com/in/sief-elmenshawi
+
