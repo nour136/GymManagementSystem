@@ -25,6 +25,11 @@ namespace GymManagement
             app.UseAuthorization();
 
             app.MapStaticAssets();
+
+            // Map API Controllers
+            app.MapControllers();
+
+            // Map MVC Controllers
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}")
