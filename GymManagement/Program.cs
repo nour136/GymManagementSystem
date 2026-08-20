@@ -2,14 +2,17 @@ using GymManagement.BLL.Services;
 using GymManagement.DAL.Data;
 using GymManagement.DAL.Entities;
 using GymManagement.DAL.Repositories;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace GymManagement
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +29,28 @@ namespace GymManagement
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
+            var jwtSettings = builder.Configuration.GetSection("Jwt");
+
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtSettings["Issuer"],
+                    ValidAudience = jwtSettings["Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(jwtSettings["Key"]!))
+                };
+            });
+
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IPlanService, PlanService>();
             builder.Services.AddScoped<IMemberService, MemberService>();
@@ -40,6 +65,8 @@ namespace GymManagement
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
+
+            await SeedRolesAndAdminAsync(app.Services);
 
             if (app.Environment.IsDevelopment())
             {
@@ -72,7 +99,44 @@ namespace GymManagement
                 pattern: "{controller=Home}/{action=Index}/{id?}")
                 .WithStaticAssets();
 
-            app.Run();
+            await app.RunAsync();
+        }
+
+        private static async Task SeedRolesAndAdminAsync(IServiceProvider services)
+        {
+            using var scope = services.CreateScope();
+
+            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+            string[] roles = { "Admin", "Trainer", "Member" };
+            foreach (var role in roles)
+            {
+                if (!await roleManager.RoleExistsAsync(role))
+                {
+                    await roleManager.CreateAsync(new IdentityRole(role));
+                }
+            }
+
+            const string adminEmail = "admin@gym.com";
+            var adminUser = await userManager.FindByEmailAsync(adminEmail);
+
+            if (adminUser is null)
+            {
+                adminUser = new ApplicationUser
+                {
+                    UserName = adminEmail,
+                    Email = adminEmail,
+                    FullName = "System Admin",
+                    EmailConfirmed = true
+                };
+
+                var result = await userManager.CreateAsync(adminUser, "Admin@123456");
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(adminUser, "Admin");
+                }
+            }
         }
     }
 }
