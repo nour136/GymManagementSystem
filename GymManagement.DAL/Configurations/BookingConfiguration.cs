@@ -1,4 +1,5 @@
 using GymManagement.DAL.Entities;
+using GymManagement.DAL.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -8,7 +9,9 @@ namespace GymManagement.DAL.Configurations
     {
         public void Configure(EntityTypeBuilder<Booking> builder)
         {
-            builder.HasIndex(b => new { b.MemberId, b.SessionId }).IsUnique();
+            builder.HasIndex(b => new { b.MemberId, b.SessionId })
+                .IsUnique()
+                .HasFilter($"[Status] <> {(int)BookingStatus.Cancelled}");
         }
     }
 }
