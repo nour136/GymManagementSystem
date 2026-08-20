@@ -57,6 +57,8 @@ namespace GymManagement.BLL.Services
                 throw new InvalidOperationException($"Could not create user account: {errors}");
             }
 
+            await _userManager.AddToRoleAsync(user, "Trainer");
+
             var trainer = new Trainer
             {
                 ApplicationUserId = user.Id,
