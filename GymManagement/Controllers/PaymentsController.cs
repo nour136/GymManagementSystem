@@ -1,11 +1,13 @@
 using GymManagement.BLL.DTOs;
 using GymManagement.BLL.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GymManagement.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin")]
     public class PaymentsController : ControllerBase
     {
         private readonly IPaymentService _paymentService;

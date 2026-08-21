@@ -14,12 +14,29 @@ namespace GymManagement.BLL.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<IEnumerable<BookingDto>> GetAllAsync()
+        public async Task<IEnumerable<BookingDto>> GetAllAsync(string requestingUserId, bool isPrivileged)
         {
-            var bookings = (await _unitOfWork.Bookings.GetAllAsync()).ToList();
+            IEnumerable<Booking> bookings;
 
-            var memberIds = bookings.Select(b => b.MemberId).Distinct().ToList();
-            var sessionIds = bookings.Select(b => b.SessionId).Distinct().ToList();
+            if (isPrivileged)
+            {
+                bookings = await _unitOfWork.Bookings.GetAllAsync();
+            }
+            else
+            {
+                var memberId = await GetMemberIdForUserAsync(requestingUserId);
+                if (memberId is null)
+                {
+                    return Enumerable.Empty<BookingDto>();
+                }
+
+                bookings = await _unitOfWork.Bookings.FindAsync(b => b.MemberId == memberId.Value);
+            }
+
+            var bookingList = bookings.ToList();
+
+            var memberIds = bookingList.Select(b => b.MemberId).Distinct().ToList();
+            var sessionIds = bookingList.Select(b => b.SessionId).Distinct().ToList();
 
             var members = (await _unitOfWork.Members.FindAsync(m => memberIds.Contains(m.Id)))
                 .ToDictionary(m => m.Id, m => m.FullName);
@@ -27,18 +44,27 @@ namespace GymManagement.BLL.Services
             var sessions = (await _unitOfWork.Sessions.FindAsync(s => sessionIds.Contains(s.Id)))
                 .ToDictionary(s => s.Id, s => s.Name);
 
-            return bookings.Select(b => MapToDto(
+            return bookingList.Select(b => MapToDto(
                 b,
                 members.GetValueOrDefault(b.MemberId, string.Empty),
                 sessions.GetValueOrDefault(b.SessionId, string.Empty)));
         }
 
-        public async Task<BookingDto?> GetByIdAsync(int id)
+        public async Task<BookingDto?> GetByIdAsync(int id, string requestingUserId, bool isPrivileged)
         {
             var booking = await _unitOfWork.Bookings.GetByIdAsync(id);
             if (booking is null)
             {
                 return null;
+            }
+
+            if (!isPrivileged)
+            {
+                var memberId = await GetMemberIdForUserAsync(requestingUserId);
+                if (memberId is null || booking.MemberId != memberId.Value)
+                {
+                    return null;
+                }
             }
 
             var member = await _unitOfWork.Members.GetByIdAsync(booking.MemberId);
@@ -47,9 +73,26 @@ namespace GymManagement.BLL.Services
             return MapToDto(booking, member?.FullName ?? string.Empty, session?.Name ?? string.Empty);
         }
 
-        public async Task<BookingDto> CreateAsync(CreateBookingDto dto)
+        public async Task<BookingDto> CreateAsync(CreateBookingDto dto, string requestingUserId, bool isAdmin)
         {
-            var member = await _unitOfWork.Members.GetByIdAsync(dto.MemberId);
+            int memberIdToUse;
+
+            if (isAdmin)
+            {
+                memberIdToUse = dto.MemberId;
+            }
+            else
+            {
+                var memberId = await GetMemberIdForUserAsync(requestingUserId);
+                if (memberId is null)
+                {
+                    throw new InvalidOperationException("No member profile found for this account.");
+                }
+
+                memberIdToUse = memberId.Value;
+            }
+
+            var member = await _unitOfWork.Members.GetByIdAsync(memberIdToUse);
             if (member is null)
             {
                 throw new InvalidOperationException("Member not found.");
@@ -69,7 +112,7 @@ namespace GymManagement.BLL.Services
             var sessionBookings = (await _unitOfWork.Bookings.FindAsync(b => b.SessionId == dto.SessionId)).ToList();
 
             var alreadyBooked = sessionBookings.Any(b =>
-                b.MemberId == dto.MemberId && b.Status != BookingStatus.Cancelled);
+                b.MemberId == memberIdToUse && b.Status != BookingStatus.Cancelled);
             if (alreadyBooked)
             {
                 throw new InvalidOperationException("This member already has an active booking for this session.");
@@ -83,7 +126,7 @@ namespace GymManagement.BLL.Services
 
             var booking = new Booking
             {
-                MemberId = dto.MemberId,
+                MemberId = memberIdToUse,
                 SessionId = dto.SessionId,
                 BookingDate = DateTime.UtcNow,
                 Status = BookingStatus.Confirmed
@@ -95,12 +138,21 @@ namespace GymManagement.BLL.Services
             return MapToDto(booking, member.FullName, session.Name);
         }
 
-        public async Task<bool> CancelAsync(int id)
+        public async Task<bool> CancelAsync(int id, string requestingUserId, bool isPrivileged)
         {
             var booking = await _unitOfWork.Bookings.GetByIdAsync(id);
             if (booking is null)
             {
                 return false;
+            }
+
+            if (!isPrivileged)
+            {
+                var memberId = await GetMemberIdForUserAsync(requestingUserId);
+                if (memberId is null || booking.MemberId != memberId.Value)
+                {
+                    return false;
+                }
             }
 
             booking.Status = BookingStatus.Cancelled;
@@ -109,6 +161,12 @@ namespace GymManagement.BLL.Services
             await _unitOfWork.SaveChangesAsync();
 
             return true;
+        }
+
+        private async Task<int?> GetMemberIdForUserAsync(string applicationUserId)
+        {
+            var members = await _unitOfWork.Members.FindAsync(m => m.ApplicationUserId == applicationUserId);
+            return members.FirstOrDefault()?.Id;
         }
 
         private static BookingDto MapToDto(Booking booking, string memberName, string sessionName)

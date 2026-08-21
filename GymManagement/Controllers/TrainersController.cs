@@ -1,11 +1,13 @@
 using GymManagement.BLL.DTOs;
 using GymManagement.BLL.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GymManagement.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin")]
     public class TrainersController : ControllerBase
     {
         private readonly ITrainerService _trainerService;
@@ -16,6 +18,7 @@ namespace GymManagement.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<TrainerDto>>> GetAll()
         {
             var trainers = await _trainerService.GetAllAsync();
@@ -23,6 +26,7 @@ namespace GymManagement.Controllers
         }
 
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<ActionResult<TrainerDto>> GetById(int id)
         {
             var trainer = await _trainerService.GetByIdAsync(id);
