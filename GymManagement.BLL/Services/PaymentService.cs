@@ -15,15 +15,24 @@ namespace GymManagement.BLL.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<IEnumerable<PaymentDto>> GetAllAsync()
+        public async Task<PagedResultDto<PaymentDto>> GetAllAsync(int pageNumber, int pageSize)
         {
-            var payments = (await _unitOfWork.Payments.GetAllAsync()).ToList();
+            var (payments, totalCount) = await _unitOfWork.Payments.GetPagedAsync(pageNumber, pageSize);
+            var paymentList = payments.ToList();
 
-            var memberIds = payments.Select(p => p.MemberId).Distinct().ToList();
+            var memberIds = paymentList.Select(p => p.MemberId).Distinct().ToList();
             var members = (await _unitOfWork.Members.FindAsync(m => memberIds.Contains(m.Id)))
                 .ToDictionary(m => m.Id, m => m.FullName);
 
-            return payments.Select(p => MapToDto(p, members.GetValueOrDefault(p.MemberId, string.Empty)));
+            var dtos = paymentList.Select(p => MapToDto(p, members.GetValueOrDefault(p.MemberId, string.Empty)));
+
+            return new PagedResultDto<PaymentDto>
+            {
+                Items = dtos,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
         }
 
         public async Task<PaymentDto?> GetByIdAsync(int id)

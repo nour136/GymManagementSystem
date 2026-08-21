@@ -15,26 +15,42 @@ namespace GymManagement.BLL.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<IEnumerable<BookingDto>> GetAllAsync(string requestingUserId, bool isPrivileged)
+        public async Task<PagedResultDto<BookingDto>> GetAllAsync(
+            int pageNumber, int pageSize, string requestingUserId, bool isPrivileged)
         {
-            IEnumerable<Booking> bookings;
+            List<Booking> bookingList;
+            int totalCount;
 
             if (isPrivileged)
             {
-                bookings = await _unitOfWork.Bookings.GetAllAsync();
+                var (pagedBookings, count) = await _unitOfWork.Bookings.GetPagedAsync(pageNumber, pageSize);
+                bookingList = pagedBookings.ToList();
+                totalCount = count;
             }
             else
             {
                 var memberId = await GetMemberIdForUserAsync(requestingUserId);
                 if (memberId is null)
                 {
-                    return Enumerable.Empty<BookingDto>();
+                    return new PagedResultDto<BookingDto>
+                    {
+                        Items = new List<BookingDto>(),
+                        PageNumber = pageNumber,
+                        PageSize = pageSize,
+                        TotalCount = 0
+                    };
                 }
 
-                bookings = await _unitOfWork.Bookings.FindAsync(b => b.MemberId == memberId.Value);
-            }
+                var allOwnBookings = (await _unitOfWork.Bookings.FindAsync(b => b.MemberId == memberId.Value))
+                    .OrderBy(b => b.Id)
+                    .ToList();
 
-            var bookingList = bookings.ToList();
+                totalCount = allOwnBookings.Count;
+                bookingList = allOwnBookings
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList();
+            }
 
             var memberIds = bookingList.Select(b => b.MemberId).Distinct().ToList();
             var sessionIds = bookingList.Select(b => b.SessionId).Distinct().ToList();
@@ -45,10 +61,18 @@ namespace GymManagement.BLL.Services
             var sessions = (await _unitOfWork.Sessions.FindAsync(s => sessionIds.Contains(s.Id)))
                 .ToDictionary(s => s.Id, s => s.Name);
 
-            return bookingList.Select(b => MapToDto(
+            var dtos = bookingList.Select(b => MapToDto(
                 b,
                 members.GetValueOrDefault(b.MemberId, string.Empty),
                 sessions.GetValueOrDefault(b.SessionId, string.Empty)));
+
+            return new PagedResultDto<BookingDto>
+            {
+                Items = dtos,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
         }
 
         public async Task<BookingDto?> GetByIdAsync(int id, string requestingUserId, bool isPrivileged)

@@ -14,15 +14,24 @@ namespace GymManagement.BLL.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<IEnumerable<SessionDto>> GetAllAsync()
+        public async Task<PagedResultDto<SessionDto>> GetAllAsync(int pageNumber, int pageSize)
         {
-            var sessions = (await _unitOfWork.Sessions.GetAllAsync()).ToList();
+            var (sessions, totalCount) = await _unitOfWork.Sessions.GetPagedAsync(pageNumber, pageSize);
+            var sessionList = sessions.ToList();
 
-            var trainerIds = sessions.Select(s => s.TrainerId).Distinct().ToList();
+            var trainerIds = sessionList.Select(s => s.TrainerId).Distinct().ToList();
             var trainers = (await _unitOfWork.Trainers.FindAsync(t => trainerIds.Contains(t.Id)))
                 .ToDictionary(t => t.Id, t => t.FullName);
 
-            return sessions.Select(s => MapToDto(s, trainers.GetValueOrDefault(s.TrainerId, string.Empty)));
+            var dtos = sessionList.Select(s => MapToDto(s, trainers.GetValueOrDefault(s.TrainerId, string.Empty)));
+
+            return new PagedResultDto<SessionDto>
+            {
+                Items = dtos,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
         }
 
         public async Task<SessionDto?> GetByIdAsync(int id)
@@ -104,8 +113,7 @@ namespace GymManagement.BLL.Services
             var existingBookings = await _unitOfWork.Bookings.FindAsync(b => b.SessionId == id);
             if (existingBookings.Any())
             {
-                throw new BusinessRuleException(
-                    "Cannot delete a session that has existing bookings.");
+                throw new BusinessRuleException("Cannot delete a session that has existing bookings.");
             }
 
             _unitOfWork.Sessions.Remove(session);

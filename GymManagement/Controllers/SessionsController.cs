@@ -19,9 +19,11 @@ namespace GymManagement.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<SessionDto>>> GetAll()
+        public async Task<ActionResult<PagedResultDto<SessionDto>>> GetAll(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
-            var sessions = await _sessionService.GetAllAsync();
+            var sessions = await _sessionService.GetAllAsync(pageNumber, pageSize);
             return Ok(sessions);
         }
 

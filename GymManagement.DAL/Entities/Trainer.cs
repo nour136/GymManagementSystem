@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace GymManagement.DAL.Entities
 {
-    public class Trainer
+    public class Trainer : IEntity
     {
         public int Id { get; set; }
 

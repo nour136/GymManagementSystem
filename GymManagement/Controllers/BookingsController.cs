@@ -19,9 +19,11 @@ namespace GymManagement.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<BookingDto>>> GetAll()
+        public async Task<ActionResult<PagedResultDto<BookingDto>>> GetAll(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
-            var bookings = await _bookingService.GetAllAsync(GetUserId(), IsPrivileged());
+            var bookings = await _bookingService.GetAllAsync(pageNumber, pageSize, GetUserId(), IsPrivileged());
             return Ok(bookings);
         }
 

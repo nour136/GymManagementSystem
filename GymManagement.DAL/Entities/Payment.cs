@@ -2,7 +2,7 @@ using GymManagement.DAL.Enums;
 
 namespace GymManagement.DAL.Entities
 {
-    public class Payment
+    public class Payment : IEntity
     {
         public int Id { get; set; }
 

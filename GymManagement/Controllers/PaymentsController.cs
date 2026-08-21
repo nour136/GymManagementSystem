@@ -18,9 +18,11 @@ namespace GymManagement.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<PaymentDto>>> GetAll()
+        public async Task<ActionResult<PagedResultDto<PaymentDto>>> GetAll(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
-            var payments = await _paymentService.GetAllAsync();
+            var payments = await _paymentService.GetAllAsync(pageNumber, pageSize);
             return Ok(payments);
         }
 

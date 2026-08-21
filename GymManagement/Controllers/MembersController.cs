@@ -18,9 +18,11 @@ namespace GymManagement.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<MemberDto>>> GetAll()
+        public async Task<ActionResult<PagedResultDto<MemberDto>>> GetAll(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
-            var members = await _memberService.GetAllAsync();
+            var members = await _memberService.GetAllAsync(pageNumber, pageSize);
             return Ok(members);
         }
 

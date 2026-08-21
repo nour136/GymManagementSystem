@@ -4,7 +4,7 @@ namespace GymManagement.BLL.Services
 {
     public interface ITrainerService
     {
-        Task<IEnumerable<TrainerDto>> GetAllAsync();
+        Task<PagedResultDto<TrainerDto>> GetAllAsync(int pageNumber, int pageSize);
         Task<TrainerDto?> GetByIdAsync(int id);
         Task<TrainerDto> CreateAsync(CreateTrainerDto dto);
         Task<bool> UpdateAsync(int id, UpdateTrainerDto dto);
