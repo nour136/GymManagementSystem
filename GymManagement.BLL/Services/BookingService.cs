@@ -3,16 +3,19 @@ using GymManagement.BLL.Exceptions;
 using GymManagement.DAL.Entities;
 using GymManagement.DAL.Enums;
 using GymManagement.DAL.Repositories;
+using Microsoft.Extensions.Logging;
 
 namespace GymManagement.BLL.Services
 {
     public class BookingService : IBookingService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ILogger<BookingService> _logger;
 
-        public BookingService(IUnitOfWork unitOfWork)
+        public BookingService(IUnitOfWork unitOfWork, ILogger<BookingService> logger)
         {
             _unitOfWork = unitOfWork;
+            _logger = logger;
         }
 
         public async Task<PagedResultDto<BookingDto>> GetAllAsync(
@@ -160,6 +163,10 @@ namespace GymManagement.BLL.Services
             await _unitOfWork.Bookings.AddAsync(booking);
             await _unitOfWork.SaveChangesAsync();
 
+            _logger.LogInformation(
+                "Booking created: MemberId {MemberId}, SessionId {SessionId}, BookingId {BookingId}",
+                memberIdToUse, dto.SessionId, booking.Id);
+
             return MapToDto(booking, member.FullName, session.Name);
         }
 
@@ -184,6 +191,8 @@ namespace GymManagement.BLL.Services
 
             _unitOfWork.Bookings.Update(booking);
             await _unitOfWork.SaveChangesAsync();
+
+            _logger.LogInformation("Booking cancelled: BookingId {BookingId}", id);
 
             return true;
         }

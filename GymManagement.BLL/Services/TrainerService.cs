@@ -4,6 +4,7 @@ using GymManagement.DAL.Entities;
 using GymManagement.DAL.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace GymManagement.BLL.Services
 {
@@ -11,11 +12,13 @@ namespace GymManagement.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ILogger<TrainerService> _logger;
 
-        public TrainerService(IUnitOfWork unitOfWork, UserManager<ApplicationUser> userManager)
+        public TrainerService(IUnitOfWork unitOfWork, UserManager<ApplicationUser> userManager, ILogger<TrainerService> logger)
         {
             _unitOfWork = unitOfWork;
             _userManager = userManager;
+            _logger = logger;
         }
 
         public async Task<PagedResultDto<TrainerDto>> GetAllAsync(int pageNumber, int pageSize)
@@ -82,6 +85,8 @@ namespace GymManagement.BLL.Services
             await _unitOfWork.Trainers.AddAsync(trainer);
             await _unitOfWork.SaveChangesAsync();
 
+            _logger.LogInformation("New trainer added: {Email} (TrainerId: {TrainerId})", dto.Email, trainer.Id);
+
             return MapToDto(trainer, user.Email ?? string.Empty);
         }
 
@@ -115,6 +120,8 @@ namespace GymManagement.BLL.Services
 
             _unitOfWork.Trainers.Update(trainer);
             await _unitOfWork.SaveChangesAsync();
+
+            _logger.LogInformation("Trainer deactivated: TrainerId {TrainerId}", id);
 
             return true;
         }

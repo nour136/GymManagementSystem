@@ -19,6 +19,11 @@ namespace GymManagement.Middleware
         {
             if (exception is BusinessRuleException businessRuleException)
             {
+                _logger.LogWarning(
+                    "Business rule rejected on {Path}: {Message}",
+                    httpContext.Request.Path,
+                    businessRuleException.Message);
+
                 httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
                 await httpContext.Response.WriteAsJsonAsync(
                     new { message = businessRuleException.Message },

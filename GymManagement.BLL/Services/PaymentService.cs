@@ -3,16 +3,19 @@ using GymManagement.BLL.Exceptions;
 using GymManagement.DAL.Entities;
 using GymManagement.DAL.Enums;
 using GymManagement.DAL.Repositories;
+using Microsoft.Extensions.Logging;
 
 namespace GymManagement.BLL.Services
 {
     public class PaymentService : IPaymentService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ILogger<PaymentService> _logger;
 
-        public PaymentService(IUnitOfWork unitOfWork)
+        public PaymentService(IUnitOfWork unitOfWork, ILogger<PaymentService> logger)
         {
             _unitOfWork = unitOfWork;
+            _logger = logger;
         }
 
         public async Task<PagedResultDto<PaymentDto>> GetAllAsync(int pageNumber, int pageSize)
@@ -76,6 +79,10 @@ namespace GymManagement.BLL.Services
 
             await _unitOfWork.Payments.AddAsync(payment);
             await _unitOfWork.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Payment recorded: MemberId {MemberId}, Amount {Amount}, Method {Method}, PaymentId {PaymentId}",
+                dto.MemberId, dto.Amount, dto.Method, payment.Id);
 
             return MapToDto(payment, member.FullName);
         }
