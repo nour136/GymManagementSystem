@@ -41,15 +41,8 @@ namespace GymManagement.Controllers
         [HttpPost]
         public async Task<ActionResult<TrainerDto>> Create(CreateTrainerDto dto)
         {
-            try
-            {
-                var created = await _trainerService.CreateAsync(dto);
-                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var created = await _trainerService.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
         [HttpPut("{id}")]

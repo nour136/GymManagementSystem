@@ -60,20 +60,13 @@ namespace GymManagement.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            try
+            var deleted = await _planService.DeleteAsync(id);
+            if (!deleted)
             {
-                var deleted = await _planService.DeleteAsync(id);
-                if (!deleted)
-                {
-                    return NotFound();
-                }
+                return NotFound();
+            }
 
-                return NoContent();
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            return NoContent();
         }
     }
 }

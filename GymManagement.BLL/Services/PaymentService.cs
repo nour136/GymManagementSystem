@@ -1,4 +1,5 @@
 using GymManagement.BLL.DTOs;
+using GymManagement.BLL.Exceptions;
 using GymManagement.DAL.Entities;
 using GymManagement.DAL.Enums;
 using GymManagement.DAL.Repositories;
@@ -42,7 +43,7 @@ namespace GymManagement.BLL.Services
             var member = await _unitOfWork.Members.GetByIdAsync(dto.MemberId);
             if (member is null)
             {
-                throw new InvalidOperationException("Member not found.");
+                throw new BusinessRuleException("Member not found.");
             }
 
             if (dto.SubscriptionId.HasValue)
@@ -50,7 +51,7 @@ namespace GymManagement.BLL.Services
                 var subscription = await _unitOfWork.Subscriptions.GetByIdAsync(dto.SubscriptionId.Value);
                 if (subscription is null)
                 {
-                    throw new InvalidOperationException("Subscription not found.");
+                    throw new BusinessRuleException("Subscription not found.");
                 }
             }
 

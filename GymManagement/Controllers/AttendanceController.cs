@@ -39,15 +39,8 @@ namespace GymManagement.Controllers
         [HttpPost("{bookingId}/check-in")]
         public async Task<ActionResult<AttendanceDto>> CheckIn(int bookingId)
         {
-            try
-            {
-                var created = await _attendanceService.CheckInAsync(bookingId);
-                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var created = await _attendanceService.CheckInAsync(bookingId);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
     }
 }

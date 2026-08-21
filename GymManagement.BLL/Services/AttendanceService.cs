@@ -1,4 +1,5 @@
 using GymManagement.BLL.DTOs;
+using GymManagement.BLL.Exceptions;
 using GymManagement.DAL.Entities;
 using GymManagement.DAL.Enums;
 using GymManagement.DAL.Repositories;
@@ -44,13 +45,13 @@ namespace GymManagement.BLL.Services
             var booking = await _unitOfWork.Bookings.GetByIdAsync(bookingId);
             if (booking is null)
             {
-                throw new InvalidOperationException("Booking not found.");
+                throw new BusinessRuleException("Booking not found.");
             }
 
             var existing = await _unitOfWork.Attendances.FindAsync(a => a.BookingId == bookingId);
             if (existing.Any())
             {
-                throw new InvalidOperationException("This booking has already been checked in.");
+                throw new BusinessRuleException("This booking has already been checked in.");
             }
 
             var attendance = new Attendance

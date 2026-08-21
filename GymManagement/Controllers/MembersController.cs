@@ -40,15 +40,8 @@ namespace GymManagement.Controllers
         [AllowAnonymous]
         public async Task<ActionResult<MemberDto>> Create(CreateMemberDto dto)
         {
-            try
-            {
-                var created = await _memberService.CreateAsync(dto);
-                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var created = await _memberService.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
         [HttpPut("{id}")]

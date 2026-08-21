@@ -1,4 +1,5 @@
 using GymManagement.BLL.DTOs;
+using GymManagement.BLL.Exceptions;
 using GymManagement.DAL.Entities;
 using GymManagement.DAL.Repositories;
 using Microsoft.AspNetCore.Identity;
@@ -54,7 +55,7 @@ namespace GymManagement.BLL.Services
             if (!result.Succeeded)
             {
                 var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-                throw new InvalidOperationException($"Could not create user account: {errors}");
+                throw new BusinessRuleException($"Could not create user account: {errors}");
             }
 
             await _userManager.AddToRoleAsync(user, "Member");

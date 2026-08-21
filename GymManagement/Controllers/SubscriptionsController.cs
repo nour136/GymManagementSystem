@@ -40,15 +40,8 @@ namespace GymManagement.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<SubscriptionDto>> Create(CreateSubscriptionDto dto)
         {
-            try
-            {
-                var created = await _subscriptionService.CreateAsync(dto);
-                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var created = await _subscriptionService.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
         [HttpDelete("{id}")]

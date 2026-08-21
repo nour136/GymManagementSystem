@@ -41,15 +41,8 @@ namespace GymManagement.Controllers
         [Authorize(Roles = "Admin,Member")]
         public async Task<ActionResult<BookingDto>> Create(CreateBookingDto dto)
         {
-            try
-            {
-                var created = await _bookingService.CreateAsync(dto, GetUserId(), User.IsInRole("Admin"));
-                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var created = await _bookingService.CreateAsync(dto, GetUserId(), User.IsInRole("Admin"));
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
         [HttpDelete("{id}")]

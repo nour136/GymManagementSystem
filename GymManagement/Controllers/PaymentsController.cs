@@ -39,15 +39,8 @@ namespace GymManagement.Controllers
         [HttpPost]
         public async Task<ActionResult<PaymentDto>> Create(CreatePaymentDto dto)
         {
-            try
-            {
-                var created = await _paymentService.CreateAsync(dto);
-                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var created = await _paymentService.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
     }
 }

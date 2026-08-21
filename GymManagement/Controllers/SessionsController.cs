@@ -41,53 +41,32 @@ namespace GymManagement.Controllers
         [HttpPost]
         public async Task<ActionResult<SessionDto>> Create(CreateSessionDto dto)
         {
-            try
-            {
-                var created = await _sessionService.CreateAsync(dto);
-                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var created = await _sessionService.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, UpdateSessionDto dto)
         {
-            try
+            var updated = await _sessionService.UpdateAsync(id, dto);
+            if (!updated)
             {
-                var updated = await _sessionService.UpdateAsync(id, dto);
-                if (!updated)
-                {
-                    return NotFound();
-                }
+                return NotFound();
+            }
 
-                return NoContent();
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            return NoContent();
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            try
+            var deleted = await _sessionService.DeleteAsync(id);
+            if (!deleted)
             {
-                var deleted = await _sessionService.DeleteAsync(id);
-                if (!deleted)
-                {
-                    return NotFound();
-                }
+                return NotFound();
+            }
 
-                return NoContent();
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            return NoContent();
         }
     }
 }

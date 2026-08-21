@@ -1,4 +1,5 @@
 using GymManagement.BLL.DTOs;
+using GymManagement.BLL.Exceptions;
 using GymManagement.DAL.Entities;
 using GymManagement.DAL.Repositories;
 
@@ -41,12 +42,12 @@ namespace GymManagement.BLL.Services
             var trainer = await _unitOfWork.Trainers.GetByIdAsync(dto.TrainerId);
             if (trainer is null)
             {
-                throw new InvalidOperationException("Trainer not found.");
+                throw new BusinessRuleException("Trainer not found.");
             }
 
             if (dto.ScheduledAt <= DateTime.UtcNow)
             {
-                throw new InvalidOperationException("Session cannot be scheduled in the past.");
+                throw new BusinessRuleException("Session cannot be scheduled in the past.");
             }
 
             var session = new Session
@@ -76,7 +77,7 @@ namespace GymManagement.BLL.Services
             var trainer = await _unitOfWork.Trainers.GetByIdAsync(dto.TrainerId);
             if (trainer is null)
             {
-                throw new InvalidOperationException("Trainer not found.");
+                throw new BusinessRuleException("Trainer not found.");
             }
 
             session.TrainerId = dto.TrainerId;
@@ -103,7 +104,7 @@ namespace GymManagement.BLL.Services
             var existingBookings = await _unitOfWork.Bookings.FindAsync(b => b.SessionId == id);
             if (existingBookings.Any())
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "Cannot delete a session that has existing bookings.");
             }
 

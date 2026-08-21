@@ -1,4 +1,5 @@
 using GymManagement.BLL.DTOs;
+using GymManagement.BLL.Exceptions;
 using GymManagement.DAL.Entities;
 using GymManagement.DAL.Enums;
 using GymManagement.DAL.Repositories;
@@ -86,7 +87,7 @@ namespace GymManagement.BLL.Services
                 var memberId = await GetMemberIdForUserAsync(requestingUserId);
                 if (memberId is null)
                 {
-                    throw new InvalidOperationException("No member profile found for this account.");
+                    throw new BusinessRuleException("No member profile found for this account.");
                 }
 
                 memberIdToUse = memberId.Value;
@@ -95,18 +96,18 @@ namespace GymManagement.BLL.Services
             var member = await _unitOfWork.Members.GetByIdAsync(memberIdToUse);
             if (member is null)
             {
-                throw new InvalidOperationException("Member not found.");
+                throw new BusinessRuleException("Member not found.");
             }
 
             var session = await _unitOfWork.Sessions.GetByIdAsync(dto.SessionId);
             if (session is null)
             {
-                throw new InvalidOperationException("Session not found.");
+                throw new BusinessRuleException("Session not found.");
             }
 
             if (session.ScheduledAt <= DateTime.UtcNow)
             {
-                throw new InvalidOperationException("Cannot book a session that has already started or passed.");
+                throw new BusinessRuleException("Cannot book a session that has already started or passed.");
             }
 
             var sessionBookings = (await _unitOfWork.Bookings.FindAsync(b => b.SessionId == dto.SessionId)).ToList();
@@ -115,13 +116,13 @@ namespace GymManagement.BLL.Services
                 b.MemberId == memberIdToUse && b.Status != BookingStatus.Cancelled);
             if (alreadyBooked)
             {
-                throw new InvalidOperationException("This member already has an active booking for this session.");
+                throw new BusinessRuleException("This member already has an active booking for this session.");
             }
 
             var confirmedCount = sessionBookings.Count(b => b.Status == BookingStatus.Confirmed);
             if (confirmedCount >= session.Capacity)
             {
-                throw new InvalidOperationException("This session is fully booked.");
+                throw new BusinessRuleException("This session is fully booked.");
             }
 
             var booking = new Booking

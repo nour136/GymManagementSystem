@@ -2,6 +2,7 @@ using GymManagement.BLL.Services;
 using GymManagement.DAL.Data;
 using GymManagement.DAL.Entities;
 using GymManagement.DAL.Repositories;
+using GymManagement.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -62,12 +63,17 @@ namespace GymManagement
             builder.Services.AddScoped<IAttendanceService, AttendanceService>();
             builder.Services.AddScoped<ITokenService, TokenService>();
 
+            builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+            builder.Services.AddProblemDetails();
+
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
 
             await SeedRolesAndAdminAsync(app.Services);
+
+            app.UseExceptionHandler();
 
             if (app.Environment.IsDevelopment())
             {
@@ -78,8 +84,6 @@ namespace GymManagement
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
             {
-                app.UseExceptionHandler("/Home/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
 
