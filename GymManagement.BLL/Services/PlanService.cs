@@ -1,4 +1,5 @@
 using GymManagement.BLL.DTOs;
+using GymManagement.BLL.Exceptions;
 using GymManagement.DAL.Entities;
 using GymManagement.DAL.Repositories;
 
@@ -71,7 +72,7 @@ namespace GymManagement.BLL.Services
             var existingSubscriptions = await _unitOfWork.Subscriptions.FindAsync(s => s.PlanId == id);
             if (existingSubscriptions.Any())
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "Cannot delete a plan that has existing subscriptions. Deactivate it instead.");
             }
 

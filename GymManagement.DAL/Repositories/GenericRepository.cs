@@ -1,10 +1,11 @@
 using System.Linq.Expressions;
 using GymManagement.DAL.Data;
+using GymManagement.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace GymManagement.DAL.Repositories
 {
-    public class GenericRepository<T> : IGenericRepository<T> where T : class
+    public class GenericRepository<T> : IGenericRepository<T> where T : class, IEntity
     {
         private readonly ApplicationDbContext _context;
         private readonly DbSet<T> _dbSet;
@@ -28,6 +29,19 @@ namespace GymManagement.DAL.Repositories
         public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
         {
             return await _dbSet.Where(predicate).ToListAsync();
+        }
+
+        public async Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize)
+        {
+            var totalCount = await _dbSet.CountAsync();
+
+            var items = await _dbSet
+                .OrderBy(e => e.Id)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalCount);
         }
 
         public async Task AddAsync(T entity)

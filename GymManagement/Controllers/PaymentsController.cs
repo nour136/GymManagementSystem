@@ -1,11 +1,13 @@
 using GymManagement.BLL.DTOs;
 using GymManagement.BLL.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GymManagement.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin")]
     public class PaymentsController : ControllerBase
     {
         private readonly IPaymentService _paymentService;
@@ -16,9 +18,11 @@ namespace GymManagement.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<PaymentDto>>> GetAll()
+        public async Task<ActionResult<PagedResultDto<PaymentDto>>> GetAll(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
-            var payments = await _paymentService.GetAllAsync();
+            var payments = await _paymentService.GetAllAsync(pageNumber, pageSize);
             return Ok(payments);
         }
 
@@ -37,15 +41,8 @@ namespace GymManagement.Controllers
         [HttpPost]
         public async Task<ActionResult<PaymentDto>> Create(CreatePaymentDto dto)
         {
-            try
-            {
-                var created = await _paymentService.CreateAsync(dto);
-                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var created = await _paymentService.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
     }
 }

@@ -4,7 +4,7 @@ namespace GymManagement.BLL.Services
 {
     public interface IMemberService
     {
-        Task<IEnumerable<MemberDto>> GetAllAsync();
+        Task<PagedResultDto<MemberDto>> GetAllAsync(int pageNumber, int pageSize);
         Task<MemberDto?> GetByIdAsync(int id);
         Task<MemberDto> CreateAsync(CreateMemberDto dto);
         Task<bool> UpdateAsync(int id, UpdateMemberDto dto);

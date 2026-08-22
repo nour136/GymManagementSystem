@@ -1,8 +1,10 @@
 using GymManagement.BLL.DTOs;
+using GymManagement.BLL.Exceptions;
 using GymManagement.DAL.Entities;
 using GymManagement.DAL.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace GymManagement.BLL.Services
 {
@@ -10,23 +12,34 @@ namespace GymManagement.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ILogger<TrainerService> _logger;
 
-        public TrainerService(IUnitOfWork unitOfWork, UserManager<ApplicationUser> userManager)
+        public TrainerService(IUnitOfWork unitOfWork, UserManager<ApplicationUser> userManager, ILogger<TrainerService> logger)
         {
             _unitOfWork = unitOfWork;
             _userManager = userManager;
+            _logger = logger;
         }
 
-        public async Task<IEnumerable<TrainerDto>> GetAllAsync()
+        public async Task<PagedResultDto<TrainerDto>> GetAllAsync(int pageNumber, int pageSize)
         {
-            var trainers = (await _unitOfWork.Trainers.GetAllAsync()).ToList();
+            var (trainers, totalCount) = await _unitOfWork.Trainers.GetPagedAsync(pageNumber, pageSize);
+            var trainerList = trainers.ToList();
 
-            var userIds = trainers.Select(t => t.ApplicationUserId).ToList();
+            var userIds = trainerList.Select(t => t.ApplicationUserId).ToList();
             var users = await _userManager.Users
                 .Where(u => userIds.Contains(u.Id))
                 .ToDictionaryAsync(u => u.Id, u => u.Email ?? string.Empty);
 
-            return trainers.Select(t => MapToDto(t, users.GetValueOrDefault(t.ApplicationUserId, string.Empty)));
+            var dtos = trainerList.Select(t => MapToDto(t, users.GetValueOrDefault(t.ApplicationUserId, string.Empty)));
+
+            return new PagedResultDto<TrainerDto>
+            {
+                Items = dtos,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
         }
 
         public async Task<TrainerDto?> GetByIdAsync(int id)
@@ -54,8 +67,10 @@ namespace GymManagement.BLL.Services
             if (!result.Succeeded)
             {
                 var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-                throw new InvalidOperationException($"Could not create user account: {errors}");
+                throw new BusinessRuleException($"Could not create user account: {errors}");
             }
+
+            await _userManager.AddToRoleAsync(user, "Trainer");
 
             var trainer = new Trainer
             {
@@ -69,6 +84,8 @@ namespace GymManagement.BLL.Services
 
             await _unitOfWork.Trainers.AddAsync(trainer);
             await _unitOfWork.SaveChangesAsync();
+
+            _logger.LogInformation("New trainer added: {Email} (TrainerId: {TrainerId})", dto.Email, trainer.Id);
 
             return MapToDto(trainer, user.Email ?? string.Empty);
         }
@@ -103,6 +120,8 @@ namespace GymManagement.BLL.Services
 
             _unitOfWork.Trainers.Update(trainer);
             await _unitOfWork.SaveChangesAsync();
+
+            _logger.LogInformation("Trainer deactivated: TrainerId {TrainerId}", id);
 
             return true;
         }

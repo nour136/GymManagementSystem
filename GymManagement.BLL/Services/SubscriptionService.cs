@@ -1,4 +1,5 @@
 using GymManagement.BLL.DTOs;
+using GymManagement.BLL.Exceptions;
 using GymManagement.DAL.Entities;
 using GymManagement.DAL.Enums;
 using GymManagement.DAL.Repositories;
@@ -14,12 +15,13 @@ namespace GymManagement.BLL.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<IEnumerable<SubscriptionDto>> GetAllAsync()
+        public async Task<PagedResultDto<SubscriptionDto>> GetAllAsync(int pageNumber, int pageSize)
         {
-            var subscriptions = (await _unitOfWork.Subscriptions.GetAllAsync()).ToList();
+            var (subscriptions, totalCount) = await _unitOfWork.Subscriptions.GetPagedAsync(pageNumber, pageSize);
+            var subscriptionList = subscriptions.ToList();
 
-            var memberIds = subscriptions.Select(s => s.MemberId).Distinct().ToList();
-            var planIds = subscriptions.Select(s => s.PlanId).Distinct().ToList();
+            var memberIds = subscriptionList.Select(s => s.MemberId).Distinct().ToList();
+            var planIds = subscriptionList.Select(s => s.PlanId).Distinct().ToList();
 
             var members = (await _unitOfWork.Members.FindAsync(m => memberIds.Contains(m.Id)))
                 .ToDictionary(m => m.Id, m => m.FullName);
@@ -27,10 +29,18 @@ namespace GymManagement.BLL.Services
             var plans = (await _unitOfWork.Plans.FindAsync(p => planIds.Contains(p.Id)))
                 .ToDictionary(p => p.Id, p => p.Name);
 
-            return subscriptions.Select(s => MapToDto(
+            var dtos = subscriptionList.Select(s => MapToDto(
                 s,
                 members.GetValueOrDefault(s.MemberId, string.Empty),
                 plans.GetValueOrDefault(s.PlanId, string.Empty)));
+
+            return new PagedResultDto<SubscriptionDto>
+            {
+                Items = dtos,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
         }
 
         public async Task<SubscriptionDto?> GetByIdAsync(int id)
@@ -52,20 +62,20 @@ namespace GymManagement.BLL.Services
             var member = await _unitOfWork.Members.GetByIdAsync(dto.MemberId);
             if (member is null)
             {
-                throw new InvalidOperationException("Member not found.");
+                throw new BusinessRuleException("Member not found.");
             }
 
             var plan = await _unitOfWork.Plans.GetByIdAsync(dto.PlanId);
             if (plan is null)
             {
-                throw new InvalidOperationException("Plan not found.");
+                throw new BusinessRuleException("Plan not found.");
             }
 
             var memberSubscriptions = await _unitOfWork.Subscriptions.FindAsync(s => s.MemberId == dto.MemberId);
             var hasActiveSubscription = memberSubscriptions.Any(IsEffectivelyActive);
             if (hasActiveSubscription)
             {
-                throw new InvalidOperationException("Member already has an active subscription.");
+                throw new BusinessRuleException("Member already has an active subscription.");
             }
 
             var startDate = dto.StartDate ?? DateTime.UtcNow;

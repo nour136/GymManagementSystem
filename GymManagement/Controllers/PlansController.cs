@@ -1,11 +1,13 @@
 using GymManagement.BLL.DTOs;
 using GymManagement.BLL.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GymManagement.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin")]
     public class PlansController : ControllerBase
     {
         private readonly IPlanService _planService;
@@ -16,6 +18,7 @@ namespace GymManagement.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<PlanDto>>> GetAll()
         {
             var plans = await _planService.GetAllAsync();
@@ -23,6 +26,7 @@ namespace GymManagement.Controllers
         }
 
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<ActionResult<PlanDto>> GetById(int id)
         {
             var plan = await _planService.GetByIdAsync(id);
@@ -56,20 +60,13 @@ namespace GymManagement.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            try
+            var deleted = await _planService.DeleteAsync(id);
+            if (!deleted)
             {
-                var deleted = await _planService.DeleteAsync(id);
-                if (!deleted)
-                {
-                    return NotFound();
-                }
+                return NotFound();
+            }
 
-                return NoContent();
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            return NoContent();
         }
     }
 }

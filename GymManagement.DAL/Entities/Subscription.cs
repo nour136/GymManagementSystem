@@ -2,7 +2,7 @@ using GymManagement.DAL.Enums;
 
 namespace GymManagement.DAL.Entities
 {
-    public class Subscription
+    public class Subscription : IEntity
     {
         public int Id { get; set; }
 

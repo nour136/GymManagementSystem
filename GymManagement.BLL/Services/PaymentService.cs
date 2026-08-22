@@ -1,28 +1,41 @@
 using GymManagement.BLL.DTOs;
+using GymManagement.BLL.Exceptions;
 using GymManagement.DAL.Entities;
 using GymManagement.DAL.Enums;
 using GymManagement.DAL.Repositories;
+using Microsoft.Extensions.Logging;
 
 namespace GymManagement.BLL.Services
 {
     public class PaymentService : IPaymentService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ILogger<PaymentService> _logger;
 
-        public PaymentService(IUnitOfWork unitOfWork)
+        public PaymentService(IUnitOfWork unitOfWork, ILogger<PaymentService> logger)
         {
             _unitOfWork = unitOfWork;
+            _logger = logger;
         }
 
-        public async Task<IEnumerable<PaymentDto>> GetAllAsync()
+        public async Task<PagedResultDto<PaymentDto>> GetAllAsync(int pageNumber, int pageSize)
         {
-            var payments = (await _unitOfWork.Payments.GetAllAsync()).ToList();
+            var (payments, totalCount) = await _unitOfWork.Payments.GetPagedAsync(pageNumber, pageSize);
+            var paymentList = payments.ToList();
 
-            var memberIds = payments.Select(p => p.MemberId).Distinct().ToList();
+            var memberIds = paymentList.Select(p => p.MemberId).Distinct().ToList();
             var members = (await _unitOfWork.Members.FindAsync(m => memberIds.Contains(m.Id)))
                 .ToDictionary(m => m.Id, m => m.FullName);
 
-            return payments.Select(p => MapToDto(p, members.GetValueOrDefault(p.MemberId, string.Empty)));
+            var dtos = paymentList.Select(p => MapToDto(p, members.GetValueOrDefault(p.MemberId, string.Empty)));
+
+            return new PagedResultDto<PaymentDto>
+            {
+                Items = dtos,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
         }
 
         public async Task<PaymentDto?> GetByIdAsync(int id)
@@ -42,7 +55,7 @@ namespace GymManagement.BLL.Services
             var member = await _unitOfWork.Members.GetByIdAsync(dto.MemberId);
             if (member is null)
             {
-                throw new InvalidOperationException("Member not found.");
+                throw new BusinessRuleException("Member not found.");
             }
 
             if (dto.SubscriptionId.HasValue)
@@ -50,7 +63,7 @@ namespace GymManagement.BLL.Services
                 var subscription = await _unitOfWork.Subscriptions.GetByIdAsync(dto.SubscriptionId.Value);
                 if (subscription is null)
                 {
-                    throw new InvalidOperationException("Subscription not found.");
+                    throw new BusinessRuleException("Subscription not found.");
                 }
             }
 
@@ -66,6 +79,10 @@ namespace GymManagement.BLL.Services
 
             await _unitOfWork.Payments.AddAsync(payment);
             await _unitOfWork.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Payment recorded: MemberId {MemberId}, Amount {Amount}, Method {Method}, PaymentId {PaymentId}",
+                dto.MemberId, dto.Amount, dto.Method, payment.Id);
 
             return MapToDto(payment, member.FullName);
         }

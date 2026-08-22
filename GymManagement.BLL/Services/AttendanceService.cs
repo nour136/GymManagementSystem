@@ -1,4 +1,5 @@
 using GymManagement.BLL.DTOs;
+using GymManagement.BLL.Exceptions;
 using GymManagement.DAL.Entities;
 using GymManagement.DAL.Enums;
 using GymManagement.DAL.Repositories;
@@ -14,18 +15,23 @@ namespace GymManagement.BLL.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<IEnumerable<AttendanceDto>> GetAllAsync()
+        public async Task<PagedResultDto<AttendanceDto>> GetAllAsync(int pageNumber, int pageSize)
         {
-            var attendances = (await _unitOfWork.Attendances.GetAllAsync()).ToList();
-            var result = new List<AttendanceDto>();
+            var (attendances, totalCount) = await _unitOfWork.Attendances.GetPagedAsync(pageNumber, pageSize);
 
+            var dtos = new List<AttendanceDto>();
             foreach (var attendance in attendances)
             {
-                var dto = await BuildDtoAsync(attendance);
-                result.Add(dto);
+                dtos.Add(await BuildDtoAsync(attendance));
             }
 
-            return result;
+            return new PagedResultDto<AttendanceDto>
+            {
+                Items = dtos,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
         }
 
         public async Task<AttendanceDto?> GetByIdAsync(int id)
@@ -44,13 +50,13 @@ namespace GymManagement.BLL.Services
             var booking = await _unitOfWork.Bookings.GetByIdAsync(bookingId);
             if (booking is null)
             {
-                throw new InvalidOperationException("Booking not found.");
+                throw new BusinessRuleException("Booking not found.");
             }
 
             var existing = await _unitOfWork.Attendances.FindAsync(a => a.BookingId == bookingId);
             if (existing.Any())
             {
-                throw new InvalidOperationException("This booking has already been checked in.");
+                throw new BusinessRuleException("This booking has already been checked in.");
             }
 
             var attendance = new Attendance

@@ -1,11 +1,13 @@
 using GymManagement.BLL.DTOs;
 using GymManagement.BLL.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GymManagement.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin")]
     public class TrainersController : ControllerBase
     {
         private readonly ITrainerService _trainerService;
@@ -16,13 +18,17 @@ namespace GymManagement.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TrainerDto>>> GetAll()
+        [AllowAnonymous]
+        public async Task<ActionResult<PagedResultDto<TrainerDto>>> GetAll(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
-            var trainers = await _trainerService.GetAllAsync();
+            var trainers = await _trainerService.GetAllAsync(pageNumber, pageSize);
             return Ok(trainers);
         }
 
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<ActionResult<TrainerDto>> GetById(int id)
         {
             var trainer = await _trainerService.GetByIdAsync(id);
@@ -37,15 +43,8 @@ namespace GymManagement.Controllers
         [HttpPost]
         public async Task<ActionResult<TrainerDto>> Create(CreateTrainerDto dto)
         {
-            try
-            {
-                var created = await _trainerService.CreateAsync(dto);
-                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var created = await _trainerService.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
         [HttpPut("{id}")]

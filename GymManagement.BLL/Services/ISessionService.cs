@@ -4,7 +4,7 @@ namespace GymManagement.BLL.Services
 {
     public interface ISessionService
     {
-        Task<IEnumerable<SessionDto>> GetAllAsync();
+        Task<PagedResultDto<SessionDto>> GetAllAsync(int pageNumber, int pageSize);
         Task<SessionDto?> GetByIdAsync(int id);
         Task<SessionDto> CreateAsync(CreateSessionDto dto);
         Task<bool> UpdateAsync(int id, UpdateSessionDto dto);
