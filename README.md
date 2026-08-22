@@ -1,183 +1,126 @@
-# 🏋️ Gym Management System
+# Gym Management System
 
-A complete **Gym Management System** built using **ASP.NET Core MVC** to automate and manage gym operations including members, trainers, sessions, memberships, plans, and bookings.
+A layered **ASP.NET Core Web API** for managing gym operations, including members, trainers, sessions, membership plans, subscriptions, bookings, attendance, and payments.
 
-The project follows a clean layered architecture to achieve **scalability, maintainability, and separation of concerns**.
-
----
-
-# 🚀 Features
-
-## 👤 Authentication & Authorization
-
-* User authentication using **ASP.NET Core Identity**
-* Role-based authorization
-* Secure password hashing
-* User and role management
+The project follows a clean layered architecture to achieve scalability, maintainability, and separation of concerns. It is built on .NET 9 with JWT-based authentication and role-based authorization.
 
 ---
 
-## 👥 Member Management
-
-* Add, update, delete, and view members
-* Manage member information
-* Track memberships and subscriptions
-* Handle member attachments
-
----
-
-## 🏋️ Trainer Management
-
-* Manage trainers
-* Assign trainers to sessions
-* Maintain trainer information
-
----
-
-## 📅 Session Management
-
-* Create and manage gym sessions
-* Define session capacity
-* Assign trainers
-* Track session schedules
-
----
-
-## 💳 Membership Management
-
-* Create membership plans
-* Manage subscriptions
-* Track member memberships
-
----
-
-## 📌 Booking System
-
-* Book sessions
-* Manage booking operations
-* Prevent invalid bookings based on business rules
-
----
-
-# 🏗️ Architecture
-
-The project is designed using a layered architecture:
+## Architecture
 
 ```text
 GymManagementSystem
+│
+├── GymManagement            (Presentation / API Layer)
+│   ├── Controllers
+│   ├── Middleware
+│   └── Program.cs
+│
+├── GymManagement.BLL         (Business Logic Layer)
+│   ├── Services
+│   ├── DTOs
+│   └── Exceptions
+│
+└── GymManagement.DAL         (Data Access Layer)
+    ├── Entities
+    ├── Configurations
+    ├── Repositories
+    └── Migrations
+```
 
+Data flows: **API → BLL → DAL → EF Core → SQL Server**
+
+---
+
+## Features
+
+### Authentication & Authorization
+- ASP.NET Core Identity for user management
+- JWT Bearer authentication
+- Role-based authorization (Admin, Trainer, Member)
+- Roles and a default admin account seeded on startup
+
+### Domain Entities
+- **Member / Trainer** — linked 1:1 with an Identity user account
+- **Plan** — membership plans (name, price, duration)
+- **Subscription** — a member's active or past subscription to a plan, with server-computed start/end dates
+- **Session** — a bookable class run by a trainer
+- **Booking** — a member's booking of a session, with capacity and double-booking checks
+- **Attendance** — check-in tracking tied to a booking
+- **Payment** — payments linked to a member, optionally linked to a subscription
+
+### Business Rules
+- Plans cannot be deleted while active subscriptions reference them
+- Sessions cannot be created in the past
+- Bookings are blocked once a session is full, already booked, or in the past
+- Members can only view or manage their own bookings; requesting another member's booking returns 404
+- Subscriptions block overlapping active periods for the same member
+- Payments allow flexible amounts (discounts/partial payments) and optional subscription linkage
+
+### API Infrastructure
+- Centralized exception handling via a global exception handler
+- Consistent pagination (`pageNumber`, `pageSize`) across list endpoints
+- Structured logging for business rule rejections, authentication events, and entity creation
+- Interactive API documentation and testing via Swagger
+
+---
+
+## Technology Stack
+
+**Backend**
+- C#, .NET 9
+- ASP.NET Core Web API
+- Entity Framework Core 9
+
+**Database**
+- SQL Server
+- EF Core Code First with Fluent API configurations and migrations
+
+**Security**
+- ASP.NET Core Identity
+- JWT Bearer authentication
+- Role-based authorization
+
+**Tools**
+- Visual Studio 2022
+- Git & GitHub
+- Swagger / Swashbuckle
+
+---
+
+## Design Patterns & Principles
+
+- Repository Pattern (generic, not per-entity)
+- Unit of Work Pattern
+- Dependency Injection
+- SOLID principles
+
+---
+
+## Project Structure
+
+```text
+GymManagementSystem
 │
-├── Presentation Layer
-│   └── ASP.NET Core MVC
-│       ├── Controllers
-│       ├── Views
-│       └── ViewModels
-│
-├── Business Logic Layer
-│   └── Services
-│       ├── Business Rules
-│       ├── Application Logic
-│       └── DTOs
-│
-└── Data Access Layer
-    └── Entity Framework Core
-        ├── DbContext
-        ├── Entities
-        ├── Configurations
-        └── Migrations
+├── GymManagement          (API / Presentation)
+├── GymManagement.BLL      (Business Logic Layer)
+├── GymManagement.DAL      (Data Access Layer)
+└── GymManagementSolution.sln
 ```
 
 ---
 
-# 🛠️ Technologies Used
+## Installation & Setup
 
-## Backend
-
-* C#
-* ASP.NET Core MVC
-* .NET 9
-* Entity Framework Core
-* LINQ
-
-## Database
-
-* SQL Server
-* Entity Framework Core Code First
-* Fluent API
-* Migrations
-
-## Frontend
-
-* Razor Views
-* HTML5
-* CSS3
-* Bootstrap
-* JavaScript
-* jQuery
-
-## Security
-
-* ASP.NET Core Identity
-* Role-Based Authorization
-
-## Tools
-
-* Visual Studio 2022
-* Git & GitHub
-* Swagger
-* Postman
-
----
-
-# 🧩 Design Patterns & Principles
-
-The project applies:
-
-* Repository Pattern
-* Unit of Work Pattern
-* Specification Pattern
-* Dependency Injection
-* SOLID Principles
-* Object-Oriented Programming (OOP)
-
----
-
-# 📂 Project Structure
-
-```text
-GymManagementSystem
-
-│
-├── GymManagement.Presentation
-│
-├── GymManagement.BLL
-│
-├── GymManagement.DAL
-│
-└── GymManagement.sln
-```
-
----
-
-# ⚙️ Installation & Setup
-
-## 1. Clone Repository
+### 1. Clone the repository
 
 ```bash
-git clone https://github.com/sief-elmenshawi/GymManagementSystem.git
+git clone https://github.com/nour136/GymManagementSystem.git
 ```
 
----
+### 2. Configure the database connection
 
-## 2. Configure Database Connection
-
-Update the connection string inside:
-
-```text
-appsettings.json
-```
-
-Example:
+Update the connection string in `appsettings.json`:
 
 ```json
 {
@@ -187,9 +130,7 @@ Example:
 }
 ```
 
----
-
-## 3. Apply Database Migration
+### 3. Apply database migrations
 
 Using Package Manager Console:
 
@@ -197,50 +138,46 @@ Using Package Manager Console:
 Update-Database
 ```
 
-or using CLI:
+Or using the .NET CLI:
 
 ```bash
 dotnet ef database update
 ```
 
----
-
-## 4. Run Application
+### 4. Run the application
 
 ```bash
 dotnet run
 ```
 
----
-
-# 🔐 Default Roles
-
-| Role    | Permissions              |
-| ------- | ------------------------ |
-| Admin   | Full system management   |
-| Trainer | Manage assigned sessions |
-| Member  | View and book sessions   |
+Swagger UI will be available at `/swagger` in development mode.
 
 ---
 
-# 🎯 Future Improvements
+## Default Roles
 
-* Build RESTful Web API version
-* Add payment integration
-* Add notification system using SignalR
-* Add dashboard analytics
-* Add automated testing
+| Role    | Permissions                                            |
+|---------|----------------------------------------------------------|
+| Admin   | Full system management                                   |
+| Trainer | Manage assigned sessions and mark attendance              |
+| Member  | Browse plans/sessions, manage own bookings and subscriptions |
+
+A default admin account is seeded on first run:
+
+```
+Email:    admin@gym.com
+Password: Admin@123456
+```
 
 ---
 
-# 👨‍💻 Author
+## Author
 
-**Sief Ibrahim Ezzat**
-
+**Nour Yasser Mansour**
 .NET Developer
 
-GitHub:
-https://github.com/sief-elmenshawi
+**LinkedIn:**
+https://www.linkedin.com/in/nour-yasser-a68474356
 
-LinkedIn:
-https://linkedin.com/in/sief-elmenshawi
+**GitHub:**
+https://github.com/nour136
